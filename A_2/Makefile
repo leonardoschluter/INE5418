@@ -1,6 +1,6 @@
 all: 
-	gcc -Wall client/client.c -o client/client
 	gcc -Wall server/server.c -o server/server
+	gcc -Wall -o application client/application.c client/client.c
 clean:
-	rm client/client 
+	rm client/calculator 
 	rm server/server
