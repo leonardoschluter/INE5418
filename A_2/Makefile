@@ -1,5 +1,5 @@
 all: 
-	gcc -Wall server/server.c -o server/server
+	gcc -Wall -o server/server server/server.c server/server_socket.c
 	gcc -Wall -o application client/application.c client/client.c
 clean:
 	rm client/calculator 
