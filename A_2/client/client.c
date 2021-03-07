@@ -31,6 +31,7 @@ void closeConnection(int sockfd){
 }
 
 void sendMessage(char* msg, int sockfd){   
+    printf("next command -> %s\n", msg);
     write(sockfd, msg, sizeof(msg));
 }
 

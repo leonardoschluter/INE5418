@@ -3,16 +3,23 @@
 #include <string.h>
 #include "client.h"
 
+char * close_command = "sair";
+
 char* askForOperation(){
-    char operation;
-    int number1;
-    int number2;
-    printf("Informe uma operação dentre + , - , / , *\n");
-    scanf ("%c", &operation);
+    char operation = ' ';
+    int number1 = 0;
+    int number2 = 0;
+    printf("Informe uma operação dentre + , - , / , * ou 's' para sair da calculadora\n");
+    scanf(" %c", &operation);
+
+    if(operation == 's'){
+        return close_command;
+    }
+
     printf("Informe o primeiro operando ( deve ser número inteiro )\n");
-    scanf ("%d", &number1);
+    scanf("%d", &number1);
     printf("Informe o segundo operando ( deve ser número inteiro )\n");
-    scanf ("%d", &number2);
+    scanf("%d", &number2);
     char *buffer = malloc(1024);
     buffer[0]=operation;
     char* number1str = malloc(128);
@@ -27,9 +34,16 @@ char* askForOperation(){
 
 int main() {
     int sockfd = connectToServer();
-    char* calculation = askForOperation();
-    sendMessage(calculation, sockfd);
-    printf("char from server = %s\n", readMessage(sockfd));
-    closeConnection(sockfd);
+    while(1){
+        char* calculation = askForOperation();
+        sendMessage(calculation, sockfd);
+        char * result = readMessage(sockfd);
+        if(*result == *close_command){
+            closeConnection(sockfd);
+            printf("Bye Bye !!!");
+            exit(0);
+        }
+        printf("calculation result = %s\n", result);
+    }    
     exit(0);
 }
