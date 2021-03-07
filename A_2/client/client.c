@@ -35,9 +35,9 @@ void sendMessage(char* msg, int sockfd){
 }
 
 char* readMessage(int sockfd){
-    char *buffer = malloc(1024);
-    bzero(&buffer, 8);
-    read(sockfd, &buffer, sizeof(buffer));
+    char *buffer = malloc(2048);
+    bzero(buffer, 2048);
+    read(sockfd, buffer, sizeof(buffer));
     return buffer;
 
 }
