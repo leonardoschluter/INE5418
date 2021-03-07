@@ -47,5 +47,5 @@ char* readClientMessage(int client_sockfd){
 }
 
 void sendResponseClient(int client_sockfd, char* msg){
-    write(client_sockfd, msg, sizeof(*msg));
+    write(client_sockfd, msg, sizeof(msg));
 }

@@ -2,7 +2,7 @@ This software describe a  calculator application between a client and a server.
 Where the server executes basic math operations ( +, -, /, *)
 
 The communication will happen in the following manner:
-1. Client ask for a calculation passing three arguments ( operation, numberA, numberB ) in the form of a string #operation#numberA#numberB.
+1. Client ask for a calculation passing three arguments ( operation, numberA, numberB ) in the form of a string operation#numberA#numberB.
 1.1 Operation can only be these four chars: '+', '-', '*', '/'
 1.2 NumberB e numberA must be integers.
 2. The server receives the message and checks the format (includes checking operation format and number type)

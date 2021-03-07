@@ -13,7 +13,7 @@ int main() {
         //TODO: interpret client message and construct a response;
         printf("Client message: %s \n", readClientMessage(client_sockfd));
 
-        char* hello = "Hello world\0";
+        char* hello = "Hello world";
         sendResponseClient(client_sockfd, hello);
         closeClientConnection(client_sockfd);       
     }
