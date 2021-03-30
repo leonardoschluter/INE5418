@@ -38,6 +38,14 @@ typedef struct NodeOperation{
 	char* response;
 } operation_t;
 
+/*
+*
+*
+* ##### OPERATION UTILS #####
+*
+*
+*/
+// TODO extract to separate file - controller.h
 operation_t * defineOperation(char* msg){	
 	operation_t * result = (operation_t *)malloc(sizeof(operation_t));
 	result->msg = strdup(msg);
@@ -65,6 +73,7 @@ operation_t * defineOperation(char* msg){
 	return result;
 }
 
+// TODO extract to separate file - string_fn.c
 char * buildNodeCommand(operation_t * op){
     char * buffer = malloc( sizeof(char*)*(128));
     bzero(buffer, sizeof(char*)*(128));
@@ -74,7 +83,7 @@ char * buildNodeCommand(operation_t * op){
 	return buffer;
 }
 
-
+// TODO extract to separate file - controller.h
 void * executeOperation(void * op_ptr){
 	operation_t * op = (operation_t *) op_ptr;
 	node_t * node = op->node;
@@ -95,6 +104,8 @@ void * executeOperation(void * op_ptr){
 	pthread_exit(0);
 }
 
+
+// TODO extract to separate file - controller.h
 operation_t * breakOperation(operation_t * op, int node){
 	operation_t * result = (operation_t *)malloc(sizeof(operation_t));
 	int currentOpSize = 0;
@@ -128,16 +139,63 @@ operation_t * breakOperation(operation_t * op, int node){
 	return result;	
 }
 
-char * defineResult(char * responses){
-	if(strstr(responses, "error") != NULL || strstr(responses, "PASS") != NULL ){
-		return "Error";
-	}else if(strstr(responses, "success") != NULL){
-		return "Sucess";
-	}else {
-		return responses;
+/*
+*
+*
+* ###### CONTROLLER OF OPERATIONS
+*
+*
+*/
+operation_t * convertSingleToMultiOperations(int numberOfNodes, operation_t * op){
+	operation_t * nodeOps = malloc(sizeof(operation_t)*numberOfNodes);
+	int i = 0;
+	for(i = 0; op->size + (op->addr % NODE_SIZE) > NODE_SIZE ; i++){
+		nodeOps[i] = *breakOperation(op, op->node_id);
 	}
+
+	if(op->size>0){
+		nodeOps[i] = *breakOperation(op, op->node_id);
+	}
+	return nodeOps;
 }
 
+// TODO extract to server_sock
+void sendResponseAndClose(connection_client * conn, char * response){
+	sendResponseClient(conn->sock, response);
+	printf("server: op response %s\n", response);
+	close(conn->sock);
+	free(conn);
+	pthread_exit(0);
+}
+
+char * dispatchOperations(int numberOfNodes, operation_t * nodeOps, node_t * nodes){
+    char * responses = malloc( sizeof(char*)*(128));
+	printf("server: number of nodes involed in  op is %d", numberOfNodes);
+		pthread_t* tid = malloc(sizeof(pthread_t)*numberOfNodes);
+		for(int i = 0; i < numberOfNodes; i++){
+			operation_t * currentOp = &nodeOps[i];
+			currentOp->node = &nodes[currentOp->node_id];
+			pthread_create((pthread_t *)&tid[i], 0, executeOperation, currentOp);
+		}
+		for(int i = 0; i < numberOfNodes; i++){
+			operation_t * currentOp = &nodeOps[i];
+   			pthread_join(tid[i], NULL);
+			if(currentOp->code == 2){
+				strncat(responses, currentOp->response, currentOp->size);
+			}else{
+				strncat(responses, currentOp->response, 7);
+			}
+		}
+	return responses;
+}
+char * dispatchSingleOperation(node_t * nodes, operation_t * op){
+	op->node = &nodes[op->node_id];
+	pthread_t* tid = malloc(sizeof(pthread_t));
+	pthread_create(tid, 0, executeOperation, op);
+	pthread_join(*tid, NULL);
+	return op->response;
+}
+// TODO break in smaller methods 
 void * process(void * ptr){
 	connection_client * conn;
 	operation_t * op;
@@ -154,67 +212,27 @@ void * process(void * ptr){
 
     op = defineOperation(buffer);
 	if(op == NULL){
-		sendResponseClient(conn->sock, "Error");
-		printf("server: op response %s\n", "Error - Invalid op");
-		/* close socket and clean up */
-		close(conn->sock);
-		free(conn);
-		pthread_exit(0);
+		sendResponseAndClose(conn, "Error - Invalid op");
 	}
+
 	if(op->size + (op->addr % NODE_SIZE) > NODE_SIZE - 1){
 		numberOfNodes = 1 + (( op->size - 1 + (op->addr % NODE_SIZE) ) / NODE_SIZE ) ;
-		nodeOps = malloc(sizeof(operation_t)*numberOfNodes);
-		int i = 0;
-		for(i = 0; op->size + (op->addr % NODE_SIZE) > NODE_SIZE ; i++){
-			nodeOps[i] = *breakOperation(op, op->node_id);
-		}
-
-		if(op->size>0){
-			nodeOps[i] = *breakOperation(op, op->node_id);
-		}
-
+		nodeOps = convertSingleToMultiOperations(numberOfNodes, op);
 	}
 
     char * responses = malloc( sizeof(char*)*(128));
 	if(numberOfNodes>0){
-		printf("server: number of nodes involed in  op is %d", numberOfNodes);
-		pthread_t* tid = malloc(sizeof(pthread_t)*numberOfNodes);
-		for(int i = 0; i < numberOfNodes; i++){
-			operation_t * currentOp = &nodeOps[i];
-			currentOp->node = &conn->nodes[currentOp->node_id];
-			pthread_create((pthread_t *)&tid[i], 0, executeOperation, currentOp);
-		}
-		for(int i = 0; i < numberOfNodes; i++){
-			operation_t * currentOp = &nodeOps[i];
-   			pthread_join(tid[i], NULL);
-			if(currentOp->code == 2){
-				strncat(responses, currentOp->response, currentOp->size);
-			}else{
-				strncat(responses, currentOp->response, 7);
-			}
-		}
-
+		dispatchOperations(numberOfNodes, nodeOps, conn->nodes);
 	}else{
-		op->node = &conn->nodes[op->node_id];
-
-		pthread_t* tid = malloc(sizeof(pthread_t));
-		pthread_create(tid, 0, executeOperation, op);
-		pthread_join(*tid, NULL);
-		executeOperation(op);
-		responses = op->response;
+		dispatchSingleOperation(conn->nodes, op);
 	}
 
-	char * result = defineResult(responses);
-	sendResponseClient(conn->sock, result);
-
-	printf("server: op response %s\n", responses);
-	/* close socket and clean up */
-	close(conn->sock);
-	free(conn);
-	pthread_exit(0);
-
-
+	char * result = defineResult(responses);	
+	sendResponseAndClose(conn, result);
+	return 0;
 }
+
+// TODO extract to separate file - server_socket.h
 int clientReceiver(int argc, char ** argv, node_t nodes[N_NODES]){
 	int sock = -1;
 	struct sockaddr_in address;

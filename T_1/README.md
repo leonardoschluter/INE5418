@@ -28,3 +28,10 @@ mas se tiver tempo, o nó mestre será definido através de protocolo de comunic
  3. size -> unsigned int
  4. data -> char* optional ( will be used only on write )
 A aplicação de log será feito usando a arquitetura peer-to-peer
+
+<!--
+TODO
+1. finish logger
+2. Report limitations of arch
+3. clean mallocs
+-->
