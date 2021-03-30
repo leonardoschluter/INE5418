@@ -28,9 +28,3 @@ mas se tiver tempo, o nó mestre será definido através de protocolo de comunic
  3. size -> unsigned int
  4. data -> char* optional ( will be used only on write )
 A aplicação de log será feito usando a arquitetura peer-to-peer
-
-
-# TODO
-[ ] - aggregate responses from read of multiple nodes
-[ ] - make the nodes and the master more tolerant when detecting an error
- 
