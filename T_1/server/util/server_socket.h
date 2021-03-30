@@ -9,7 +9,7 @@ int openServerSocket();
 
 int acceptClientConnection(struct sockaddr_in *client_address, int server_sockfd );
 
-char* readClientMessage(int client_sockfd);
+char * readClientMessage(int client_sockfd);
 
 void sendResponseClient(int client_sockfd, char* msg);
 

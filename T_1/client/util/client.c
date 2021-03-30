@@ -30,9 +30,10 @@ void closeConnection(int sockfd){
     close(sockfd);
 }
 
+
 void sendMessage(char* msg, int sockfd){   
     printf("next command -> %s\n", msg);
-    write(sockfd, msg, sizeof(msg));
+    write(sockfd, msg, sizeof(char*)*(128));
 }
 
 char* readMessage(int sockfd){

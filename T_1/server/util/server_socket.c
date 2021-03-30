@@ -38,14 +38,16 @@ int acceptClientConnection(struct sockaddr_in *client_address, int server_sockfd
      
 }
 
-char* readClientMessage(int client_sockfd){
-    char *buffer = malloc(1024);
-    bzero(buffer, 1024);
-    read(client_sockfd, buffer, sizeof(buffer));
-    printf("buffer da msg -> %s \n", buffer);
+char * readClientMessage(int client_sockfd){
+    char * buffer = malloc( sizeof(char*)*(128));
+    bzero(buffer, sizeof(char*)*(128));
+    ssize_t result = read(client_sockfd, buffer, sizeof(char*)*(128));
+    printf("result do read -> %ld\n", result);
+    printf("buffer da msg -> %s\n", buffer);
     return buffer;
 }
 
-void sendResponseClient(int client_sockfd, char* msg){
-    write(client_sockfd, msg, sizeof(msg));
+void sendResponseClient(int client_sockfd, char* msg){ 
+    printf("writing %s\n", msg);
+    write(client_sockfd, msg,  sizeof(char*)*(128));
 }
