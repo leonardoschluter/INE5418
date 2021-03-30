@@ -141,11 +141,9 @@ char * defineResult(char * responses){
 }
 
 void * process(void * ptr){
-	int len;
 	connection_client * conn;
 	operation_t * op;
 	operation_t * nodeOps;
-	long addr = 0;
 	int numberOfNodes = 0;
 
 	if (!ptr) {
@@ -198,7 +196,7 @@ void * process(void * ptr){
 
 		pthread_t* tid = malloc(sizeof(pthread_t));
 		pthread_create(tid, 0, executeOperation, op);
-		pthread_join(tid, NULL);
+		pthread_join(*tid, NULL);
 		executeOperation(op);
 		responses = op->response;
 	}

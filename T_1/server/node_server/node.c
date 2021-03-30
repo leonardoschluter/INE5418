@@ -160,12 +160,8 @@ char* executeOperation(operation_t * op){
 
 void * process(void * ptr){
 	printf("node: starting process\n");
-
-	char * buffer;
-	int len;
 	connection_t * conn;
 	operation_t * op;
-	long addr = 0;
 
 	if (!ptr) {
 		pthread_exit(0); 
