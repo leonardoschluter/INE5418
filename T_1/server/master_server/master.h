@@ -1,0 +1,8 @@
+
+initMemoryApplication();
+
+waitForClientConnection();
+
+waitForClientOperation();
+
+sendOperationToNode();
