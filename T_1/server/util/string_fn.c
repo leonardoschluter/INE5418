@@ -47,3 +47,13 @@ void removeAll(char * str, const char toRemove)
         }
     }
 }
+
+char * defineResult(char * responses){
+	if(strstr(responses, "error") != NULL || strstr(responses, "PASS") != NULL ){
+		return "Error";
+	}else if(strstr(responses, "success") != NULL){
+		return "Sucess";
+	}else {
+		return responses;
+	}
+}
