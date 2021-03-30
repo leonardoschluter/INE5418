@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdlib.h>
+
 /*C substring function: It returns a pointer to the substring */
 
 char *substring(char *string, int position, int length)
