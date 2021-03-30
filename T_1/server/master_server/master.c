@@ -45,10 +45,8 @@ operation_t * defineOperation(char* msg){
     char * code = strsep(&msg, "#");
 	printf("server: operation code -%s- \n", code);
 	if( *code != '1' && *code != '2'){
-		// TODO send response of bad request
-
 		printf("server: invalid operation code -%s- \n", code);
-		pthread_exit(0);
+		return NULL;
 	}
 	result->code = atoi(code);
 
@@ -132,7 +130,7 @@ operation_t * breakOperation(operation_t * op, int node){
 
 char * defineResult(char * responses){
 	if(strstr(responses, "error") != NULL || strstr(responses, "PASS") != NULL ){
-		return "Error - You shall not pass !";
+		return "Error";
 	}else if(strstr(responses, "success") != NULL){
 		return "Sucess";
 	}else {
@@ -155,6 +153,14 @@ void * process(void * ptr){
     char *buffer = readClientMessage(conn->sock);
 
     op = defineOperation(buffer);
+	if(op == NULL){
+		sendResponseClient(conn->sock, "Error");
+		printf("server: op response %s\n", "Error - Invalid op");
+		/* close socket and clean up */
+		close(conn->sock);
+		free(conn);
+		pthread_exit(0);
+	}
 	if(op->size + (op->addr % NODE_SIZE) > NODE_SIZE - 1){
 		numberOfNodes = 1 + (( op->size - 1 + (op->addr % NODE_SIZE) ) / NODE_SIZE ) ;
 		nodeOps = malloc(sizeof(operation_t)*numberOfNodes);
@@ -172,15 +178,12 @@ void * process(void * ptr){
     char * responses = malloc( sizeof(char*)*(128));
 	if(numberOfNodes>0){
 		printf("server: number of nodes involed in  op is %d", numberOfNodes);
-		// TODO create thread
-
 		pthread_t* tid = malloc(sizeof(pthread_t)*numberOfNodes);
 		for(int i = 0; i < numberOfNodes; i++){
 			operation_t * currentOp = &nodeOps[i];
 			currentOp->node = &conn->nodes[currentOp->node_id];
 			pthread_create((pthread_t *)&tid[i], 0, executeOperation, currentOp);
 		}
-		// join threads and concat currentOp->responses
 		for(int i = 0; i < numberOfNodes; i++){
 			operation_t * currentOp = &nodeOps[i];
    			pthread_join(tid[i], NULL);

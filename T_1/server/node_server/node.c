@@ -46,7 +46,7 @@ size_t calculateSizeOfData(char* data){
 char* readFromMemory(int addr, unsigned int size){
     int realAddr = calculateRealAddress(addr);
     if( size > K - realAddr){ // Trying to read more than it can ... 
-        return "YOU SHALLLLL NOT PASSSSSS !!!!"; 
+        return "Error"; 
     }
     char* response = malloc(size);
 
@@ -77,13 +77,13 @@ char* writeToMemory(int addr, unsigned int size, char* data){
 	printf("node: realAdd -> %d\n", realAddr);
     if(realAddr < 0 || realAddr >= K ){
 		printf("node: Out of bounds\n");
-        return "Error Out of bounds"; 
+        return "Error"; 
     }
     size_t realSize = calculateSizeOfData(data);
 	printf("node: realSize -> %ld\n", realSize);
     if(realSize != (size_t)size || realSize > (size_t) K - realAddr){
 		printf("node: You shall not pass\n");
-        return "Error You shall not pass";
+        return "Error";
     }
 
 	printf("node: entering critical section\n");
@@ -127,8 +127,7 @@ operation_t * defineOperation(char* msg){
     char * code = strsep(&msg, "#");
 	printf("node: operation code -%s- \n", code);
 	if( *code != '1' && *code != '2'){
-		// TODO send response of bad request
-		pthread_exit(0);
+		return NULL;
 	}
 	result->code = atoi(code);
     result->addr = atoi(strsep(&msg, "#"));
@@ -153,7 +152,6 @@ char* executeOperation(operation_t * op){
 		return op->data;
 	}else{
 		return "Error";
-		//TODO shit happend;
 	}
 	return "Success";
 }
@@ -173,6 +171,14 @@ void * process(void * ptr){
     char* msg = readClientMessage(conn->sock);
 	printf("node: will try to define op\n");
     op = defineOperation(msg);
+	if(op == NULL){
+		printf("node: op response -> %s\n", "Error - invalid op");
+		sendResponseClient(conn->sock, "Error - invalid op");
+		/* close socket and clean up */
+		close(conn->sock);
+		free(conn);
+		pthread_exit(0);
+	}
     // try to execute operation
 	printf("node: execute op\n");
 	char * response = executeOperation(op);	
