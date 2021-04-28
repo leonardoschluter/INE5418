@@ -51,3 +51,9 @@ void sendResponseClient(int client_sockfd, char* msg){
     printf("writing %s\n", msg);
     write(client_sockfd, msg,  sizeof(char*)*(128));
 }
+
+void sendResponseAndClose(int sock, char * response){
+	sendResponseClient(sock, response);
+	printf("server: op response %s\n", response);
+	close(sock);
+}

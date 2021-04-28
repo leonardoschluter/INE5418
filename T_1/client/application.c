@@ -5,6 +5,9 @@
 
 char * close_command = "sair";
 
+// TODO create two interface methods Le and Escreve
+// implement them here creating the right string for sending to master
+// create a sample app with those methods
 char* askForOperation(){
     char operation = ' ';
     int addr = 0;
