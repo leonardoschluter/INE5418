@@ -13,6 +13,7 @@ char * readClientMessage(int client_sockfd);
 
 void sendResponseClient(int client_sockfd, char* msg);
 
+void sendResponseAndClose(int sock, char * response);
 
 
 #endif // SERVER_SOCKET_H_
