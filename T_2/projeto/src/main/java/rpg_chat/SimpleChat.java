@@ -1,6 +1,7 @@
 package rpg_chat;
 import org.jgroups.*;
-import org.jgroups.blocks.cs.ReceiverAdapter;
+import org.jgroups.demos.Chat;
+import org.jgroups.demos.Draw;
 import org.jgroups.util.Util;
 
 import java.io.*;
@@ -45,10 +46,12 @@ public class SimpleChat implements Receiver {
 
 
     private void start() throws Exception {
-        channel=new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+        channel= new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
         channel.setReceiver(this);
         channel.connect("ChatCluster");
         channel.getState(null, 10000);
+        MyDraw draw = new MyDraw(channel, false);
+        draw.go();
         eventLoop();
         channel.close();
     }

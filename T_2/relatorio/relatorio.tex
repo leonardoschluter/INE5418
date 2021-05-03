@@ -15,29 +15,20 @@
 
 \maketitle
 
-\section{Introdução}
+\section{Ideia de Aplicação e Requisitos}
 
-Sistemas operacionais, principalmente embarcados, dependem fortemente do tratamento de interrupções, que são eventos assíncronos desenvolvidos para serem geridos pela CPU.
-Entre esses eventos assíncronos podemos destacar alguns exemplos como interrupção de relógio, interrupções de software e interrupções externas.
-A especificações do risc-v prevê que as suas implementações possuam mecanismos de gerenciamento de interrupções onde dois se destacam: o \textbf{CLINT} (Core Local Interruptor); e o \textbf{PLIC} (Plataform Local Interrupt Controller). 
-
-Neste documento vamos explorar os diferentes tipos de interrupções, com o foco no estudo dos mecanismos de gerência relativos a interrupções inter-hart no risc-v, descritas na especificação interrupções de software.
-
-\subsection{Core e Hardware Threads (hart)}
+A aplicação idealizada para esse projeto é algo semelhante ao \href{https://gartic.com.br/}{jogo gartic}. Os requisitão são então, numa versão mais básica, uma plataforma de desenho visível para todos os jogadores, sendo que apenas um jogador pode desenhar por rodada. Um chat verificador de respostas dos outros jogadores que estão apenas observando o desenho. Sobre o chat, vale ressaltar que a pontuação será baseado numa ordem FIFO, então as respostas dos jogadores serão infileiradas e pontuadas baseado num valor decrescente, começando em X e indo até 1, sendo X os números de jogadores menos o desenhista, o nodo coordenador do chat pode ser justamente o do jogador que está desenhando. Um coordenador (Máquina) que escolha palavras para serem desenhadas, escolha jogadores para desenharem e mantenha os pontos de cada jogador. 
 
 
-\subsection{Interrupção, Exceção e Trap}
+\section{MVP da implementação}
+
+Sendo um grande fã de NBA, resolvi fazer o trocadilho ( Most Valuable Player - Most Valuable Part of the code ). Na implementação utilizei de base as Demos de Chat e Draw para ter uma base para o jogo. Mas muitos desafios surgem baseado nos requisitos inicias dados acima:
 
 
+\subsection{Desafio: deixar o demo Draw desenhável apenas por um usuário}
 
-\subsection{Local Interrupt Controller}
+O desafio é autoexplicativo, atualmente o Demo abre uma instância do panel para todos e permite que todos interajam com o mesmo. Para arrumar isso foi alterado o seguinte: 
 
-
-\subsection{Global Interrupt Controller}
-
-
-
-\section{Registradores de Configuração de Interrupções}
 
 \begin{lstlisting} 
 asm!(
