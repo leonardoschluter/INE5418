@@ -1,0 +1,62 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{graphicx}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+
+\title{Trabalho 2 de Computação Distribuída - INE5418}
+\author{Leonardo Schlüter \\ 13200658}
+\date{03 de maio, 2021}
+
+\usepackage{indentfirst}
+
+\begin{document}
+
+\maketitle
+
+\section{Introdução}
+
+Sistemas operacionais, principalmente embarcados, dependem fortemente do tratamento de interrupções, que são eventos assíncronos desenvolvidos para serem geridos pela CPU.
+Entre esses eventos assíncronos podemos destacar alguns exemplos como interrupção de relógio, interrupções de software e interrupções externas.
+A especificações do risc-v prevê que as suas implementações possuam mecanismos de gerenciamento de interrupções onde dois se destacam: o \textbf{CLINT} (Core Local Interruptor); e o \textbf{PLIC} (Plataform Local Interrupt Controller). 
+
+Neste documento vamos explorar os diferentes tipos de interrupções, com o foco no estudo dos mecanismos de gerência relativos a interrupções inter-hart no risc-v, descritas na especificação interrupções de software.
+
+\subsection{Core e Hardware Threads (hart)}
+
+
+\subsection{Interrupção, Exceção e Trap}
+
+
+
+\subsection{Local Interrupt Controller}
+
+
+\subsection{Global Interrupt Controller}
+
+
+
+\section{Registradores de Configuração de Interrupções}
+
+\begin{lstlisting} 
+asm!(
+    "csrw mtvec, {}",
+    in(reg) (mtvec_clint_vector_table as usize | 0x1)
+);
+
+asm!("csrw mstatus, 0b1 << 3");
+
+asm!("csrw mie, 0b1 << 3");
+\end{lstlisting}
+    
+\section{Referências}
+
+\begin{enumerate}
+ \item SiFive Interrupt cookbook - Disponível em \url{https://sifive.cdn.prismic.io/sifive/d1984d2b-c9b9-4c91-8de0-d68a5e64fa0f_sifive-interrupt-cookbook-v1p2.pdf}
+ \item An Introduction to RISC-V Architecture - Disponível em \url{https://cdn2.hubspot.net/hubfs/3020607/An%20Introduction%20to%20the%20RISC-V%20Architecture.pdf}
+ \item The RISC-V Instruction Set Manual Volume II: Privileged Architecture Privileged Architecture Version 1.10 - Disponível em \url{https://riscv.org//wp-content/uploads/2017/05/riscv-privileged-v1.10.pdf}
+ \item SiFive FU540-C000 Manual - Disponível em \url{https://sifive.cdn.prismic.io/sifive%2F834354f0-08e6-423c-bf1f-0cb58ef14061_fu540-c000-v1.0.pdf}
+\end{enumerate}
+
+\end{document}
