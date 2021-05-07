@@ -5,12 +5,18 @@ import org.jgroups.demos.Draw;
 import org.jgroups.util.Util;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.Queue;
 
 public class SimpleChat implements Receiver {
     JChannel channel;
+    Integer leader = null;
+    String wordToDraw = "";
+    Queue<Answer> roundHistory = new LinkedList<Answer>();
     String user_name=System.getProperty("user.name", "n/a");
+    Integer ID = null;
     final List<String> state=new LinkedList<String>();
 
     public void viewAccepted(View new_view) {
@@ -40,19 +46,38 @@ public class SimpleChat implements Receiver {
         }
         System.out.println("received state (" + list.size() + " messages in chat history):");
         for(String str: list) {
-            System.out.println(str);
+            String[] answer =  str.split(":");
+            System.out.println(answer[1]);
+            if(isLeader() && wordToDraw == answer[1]){
+                // TODO find a way to send feedback back to the user that got it right;
+                roundHistory.add(new Answer(answer[0], answer[1]));
+            }
         }
     }
 
+    /**
+     * Allways first joined node is master. This mehod prints message only once.
+     */
+    private boolean isLeader() {
+        if(leader == null){
+            leader = 0 ;
+        }
+        Address leaderAddress = channel.getView().getMembers().get(leader);
+        Address currentAddress = channel.getAddress();
+        return leaderAddress.equals(currentAddress);
+    }
 
     private void start() throws Exception {
         channel= new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
         channel.setReceiver(this);
         channel.connect("ChatCluster");
-        channel.getState(null, 10000);
-        MyDraw draw = new MyDraw(channel, false);
-        draw.go();
         eventLoop();
+
+        JChannel drawChannel= new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+        MyDraw draw = new MyDraw(drawChannel, isLeader());
+        draw.setClusterName("DrawCluster");
+        draw.go();
+        drawChannel.close();
         channel.close();
     }
 
@@ -65,9 +90,13 @@ public class SimpleChat implements Receiver {
                 if(line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
-                line="[" + user_name + "] " + line;
-                Message msg = new ObjectMessage(null, line);
-                channel.send(msg);
+                if(line.startsWith("startRound") && wordToDraw.isEmpty() && isLeader() ){
+                    // TODO sort word to draw;
+                }else {
+                    line = channel.getAddressAsUUID() + ":" + line;
+                    Message msg = new ObjectMessage(null, line);
+                    channel.send(msg);
+                }
             }
             catch(Exception e) {
             }
