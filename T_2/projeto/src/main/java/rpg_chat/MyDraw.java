@@ -324,7 +324,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
 
 
     public void clearPanel() {
-        if(panel != null)
+        if(panel != null )
             panel.clear();
     }
 
@@ -349,6 +349,9 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
             case "Clear":
                 if(no_channel) {
                     clearPanel();
+                    return;
+                }
+                if(!canDraw){
                     return;
                 }
                 sendClearPanelMsg();
@@ -436,6 +439,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
             else
                 state=null;
             createOffscreenImage(false);
+
             addMouseMotionListener(this);
             addComponentListener(new ComponentAdapter() {
                 public void componentResized(ComponentEvent e) {
@@ -510,6 +514,10 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
         public void mouseMoved(MouseEvent e) {}
 
         public void mouseDragged(MouseEvent e) {
+            if(!canDraw) {
+                return;
+            }
+
             int                 x=e.getX(), y=e.getY();
             MyDrawCommand         comm=new MyDrawCommand(MyDrawCommand.DRAW, x, y, draw_color.getRGB());
 
