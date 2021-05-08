@@ -2,13 +2,15 @@ package rpg_chat;
 import org.jgroups.*;
 import org.jgroups.demos.Chat;
 import org.jgroups.demos.Draw;
+import org.jgroups.stack.IpAddress;
+import org.jgroups.util.ExtendedUUID;
 import org.jgroups.util.Util;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SimpleChat implements Receiver {
     JChannel channel;
@@ -18,14 +20,29 @@ public class SimpleChat implements Receiver {
     String user_name=System.getProperty("user.name", "n/a");
     Integer ID = null;
     final List<String> state=new LinkedList<String>();
+    private MyDraw draw;
+
+    // MESSAGES
+    static final String MSG_warningStartRound = " ||| WARNING ||| The round will start in few seconds ... ";
+    static final String MSG_gotItRight = "Congratulations, you did get it right !";
+    static final String MSG_wordToDraw = "WORD TO DRAW:";
+    static final String MSG_roundStarted = "ROUND STARTED:";
 
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
     }
 
     public void receive(Message msg) {
-        String line=msg.getSrc() + ": " + msg.getObject();
-        System.out.println(line);
+        String line=msg.getObject();
+        if(line.equals(MSG_warningStartRound) || line.equals(MSG_gotItRight) || line.equals(MSG_roundStarted)){
+            // TODO tratar mensagen MSG_roundStarted differently
+            System.out.println(line);
+        }
+        String[] answer =  line.split(":");
+        if(isLeader() && wordToDraw.equals(answer[1])){
+            System.out.println("Submitted Answer:" + answer[1] + " - Addr: "+ answer[0]);
+            checkWord(answer);
+        }
         synchronized(state) {
             state.add(line);
         }
@@ -44,13 +61,20 @@ public class SimpleChat implements Receiver {
             state.clear();
             state.addAll(list);
         }
-        System.out.println("received state (" + list.size() + " messages in chat history):");
-        for(String str: list) {
-            String[] answer =  str.split(":");
-            System.out.println(answer[1]);
-            if(isLeader() && wordToDraw == answer[1]){
-                // TODO find a way to send feedback back to the user that got it right;
-                roundHistory.add(new Answer(answer[0], answer[1]));
+
+    }
+
+    private void checkWord(String[] answer) {
+        roundHistory.add(new Answer(answer[0], answer[1]));
+        List<Address> addresses  = channel.getView().getMembers().stream().filter(address -> {
+            return address.toString().equals(answer[0]);
+        }).collect(Collectors.toList());
+        if(!addresses.isEmpty() && addresses.get(0) != null) {
+            Message msg = new ObjectMessage(addresses.get(0), MSG_gotItRight);
+            try {
+                channel.send(msg);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -71,16 +95,30 @@ public class SimpleChat implements Receiver {
         channel= new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
         channel.setReceiver(this);
         channel.connect("ChatCluster");
+        Thread thread = new Thread(){
+            public void run(){
+                try {
+                    dispatchDrawApp();
+                } catch (Exception e) {
+                    System.out.println("Error: did not start draw app");
+                    e.printStackTrace();
+                }
+            }
+        };
+        thread.start();
         eventLoop();
 
-        JChannel drawChannel= new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
-        MyDraw draw = new MyDraw(drawChannel, isLeader());
-        draw.setClusterName("DrawCluster");
-        draw.go();
-        drawChannel.close();
+        thread.join();
         channel.close();
     }
 
+    private void dispatchDrawApp() throws Exception {
+        JChannel drawChannel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+        this.draw = new MyDraw(drawChannel, isLeader());
+        this.draw.setClusterName("DrawCluster");
+        this.draw.go();
+        drawChannel.close();
+    }
     private void eventLoop() {
         BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
         while(true) {
@@ -90,10 +128,10 @@ public class SimpleChat implements Receiver {
                 if(line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
-                if(line.startsWith("startRound") && wordToDraw.isEmpty() && isLeader() ){
-                    // TODO sort word to draw;
+                if(line.equals("/start") && wordToDraw.isEmpty() && isLeader() ){
+                    startRound();
                 }else {
-                    line = channel.getAddressAsUUID() + ":" + line;
+                    line = channel.getAddressAsString() + ":" + line;
                     Message msg = new ObjectMessage(null, line);
                     channel.send(msg);
                 }
@@ -103,6 +141,27 @@ public class SimpleChat implements Receiver {
         }
     }
 
+    private void startRound() throws Exception {
+
+        Message msg = new ObjectMessage(null, MSG_warningStartRound);
+        channel.send(msg);
+        wordToDraw = sortNextWord();
+        System.out.println(MSG_wordToDraw+wordToDraw);
+        Thread.sleep(1000);
+        draw.clearPanel();
+        Date ts = new Date();
+        msg = new ObjectMessage(null, MSG_roundStarted+ts.getTime());
+        channel.send(msg);
+        try{
+            wait(1000*90);
+        }catch (InterruptedException e ){
+            e.printStackTrace();
+        }
+    }
+
+    private String sortNextWord() {
+        return "hardcoded";
+    }
 
     public static void main(String[] args) throws Exception {
         new SimpleChat().start();
