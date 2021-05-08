@@ -3,11 +3,11 @@ package rpg_chat;
 import java.util.Objects;
 
 public class Answer {
-    String addressUUID;
+    String address;
     String text;
-    public Answer(String addressUUID, String text){
+    public Answer(String address, String text){
         this.text = text;
-        this.addressUUID = addressUUID;
+        this.address = address;
     }
     @Override
     public boolean equals(Object o) {
