@@ -41,9 +41,12 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
     private final                  List<Address> members=new ArrayList<>();
     private boolean                canDraw=false;
 
+    public void setCanDraw(boolean canDraw) {
+        this.canDraw = canDraw;
+    }
 
     public MyDraw(String props, boolean no_channel, boolean jmx, boolean use_state, long state_timeout,
-                boolean use_unicasts, String name, boolean send_own_state_on_merge, AddressGenerator gen) throws Exception {
+                  boolean use_unicasts, String name, boolean send_own_state_on_merge, AddressGenerator gen) throws Exception {
         this.no_channel=no_channel;
         this.jmx=jmx;
         this.use_state=use_state;
@@ -600,6 +603,8 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
                 g.drawImage(img, 0, 0, null);
             }
         }
+
+
 
     }
 
