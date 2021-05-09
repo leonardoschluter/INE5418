@@ -1,6 +1,5 @@
-package rpg_chat;
+package gartic_in_java;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jgroups.*;
 import org.jgroups.util.Util;
 
@@ -8,14 +7,14 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SimpleChat implements Receiver {
+public class Jartic implements Receiver {
     JChannel channel;
     Address leader = null;
     String wordToDraw = "";
     Score score = new Score();
     Queue<Answer> roundHistory = new LinkedList<Answer>();
     final List<String> state = new LinkedList<String>();
-    private MyDraw draw;
+    private Board draw;
 
     // MESSAGES
     static final String MSG_warningStartRound = " ||| WARNING ||| The round will start in few seconds ... ";
@@ -31,11 +30,9 @@ public class SimpleChat implements Receiver {
         System.out.println("** view: " + new_view);
     }
 
+    //TODO reimplement this using the same logic of boardCommand
     public void receive(Message msg) {
         String line = msg.getObject();
-        synchronized (state) {
-            state.add(line);
-        }
         if(line.contains(MSG_updateScore)){
             String[] data = line.split(":", 2);
             score.updateScoreByString(data[1]);
@@ -69,11 +66,12 @@ public class SimpleChat implements Receiver {
         String[] answer = line.split(":");
         if (isLeader() && wordToDraw.equals(answer[1])) {
             System.out.println("Submitted Answer:" + answer[1] + " - Addr: " + answer[0]);
-            saveWord(answer);
+            saveAnswer(answer);
             return;
         }
     }
 
+    // TODO should be in controller
     private Address findAddressByString(String str) {
         List<Address> addresses = channel.getView().getMembers().stream().filter(address -> {
             return address.toString().equals(str);
@@ -97,7 +95,8 @@ public class SimpleChat implements Receiver {
 
     }
 
-    private void saveWord(String[] answer) {
+    // TODO should be in controller
+    private void saveAnswer(String[] answer) {
         roundHistory.add(new Answer(answer[0], answer[1]));
         Address address = findAddressByString(answer[0]);
         if (address != null) {
@@ -110,6 +109,8 @@ public class SimpleChat implements Receiver {
         }
     }
 
+
+    // TODO should be in controller
     private boolean isLeader() {
         if (leader == null) {
             leader = channel.getAddress();
@@ -119,6 +120,8 @@ public class SimpleChat implements Receiver {
         return leader.equals(currentAddress);
     }
 
+
+    // TODO should be in controller
     private void start() throws Exception {
         channel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
         channel.setReceiver(this);
@@ -141,9 +144,11 @@ public class SimpleChat implements Receiver {
         channel.close();
     }
 
+
+    // TODO should be in controller
     private void dispatchDrawApp() throws Exception {
         JChannel drawChannel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
-        this.draw = new MyDraw(drawChannel, isLeader());
+        this.draw = new Board(drawChannel, isLeader());
         this.draw.setClusterName("DrawCluster");
         this.draw.go();
         drawChannel.close();
@@ -172,6 +177,7 @@ public class SimpleChat implements Receiver {
         }
     }
 
+    // TODO should be in controller
     private void startRound() throws Exception {
         channel.getView().getMembers().forEach(address -> {
             score.addPlayer(address);
@@ -199,6 +205,8 @@ public class SimpleChat implements Receiver {
         finishRound();
     }
 
+    // TODO should be in controller
+    // can be breaked in a lot of smaller methods
     private void finishRound() {
         List<Answer> pointedAnswers = new ArrayList<>();
         int pointCounter = 10;
@@ -259,6 +267,6 @@ public class SimpleChat implements Receiver {
     }
 
     public static void main(String[] args) throws Exception {
-        new SimpleChat().start();
+        new Jartic().start();
     }
 }

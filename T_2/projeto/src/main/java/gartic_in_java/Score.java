@@ -1,4 +1,4 @@
-package rpg_chat;
+package gartic_in_java;
 
 import org.jgroups.Address;
 
