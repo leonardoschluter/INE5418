@@ -39,7 +39,7 @@ public class Player implements Serializable {
     }
 
     public String toSerializable() {
-        return address+"|"+points+"|"+hasBeenLeader;
+        return address+";"+points+";"+hasBeenLeader;
     }
 
     public void resetLeader() {

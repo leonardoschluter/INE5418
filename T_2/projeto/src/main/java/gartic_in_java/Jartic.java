@@ -14,37 +14,12 @@ public class Jartic implements Receiver {
     Score score = new Score();
     Queue<Answer> roundHistory = new LinkedList<Answer>();
     private Board draw;
-    private Chat chat = new Chat();
+    private Chat chat = new Chat(this);
+    private JChannel drawChannel;
 
-    private Address findAddressByString(String str) {
-        List<Address> addresses = channel.getView().getMembers().stream().filter(address -> {
-            return address.toString().equals(str);
-        }).collect(Collectors.toList());
-        return addresses.get(0);
-    }
-
-    private void saveAnswer(String[] answer) {
-        roundHistory.add(new Answer(answer[0], answer[1]));
-        Address address = findAddressByString(answer[0]);
-        if (address != null) {
-            Message msg = new ObjectMessage(address, MSG_gotItRight);
-            try {
-                channel.send(msg);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public boolean isLeader() {
-        if (leader == null) {
-            leader = channel.getAddress();
-            score.updateLeader(leader);
-        }
-        Address currentAddress = channel.getAddress();
-        return leader.equals(currentAddress);
-    }
-
+    /*
+        Flow methods
+    */
     private void start() throws Exception {
         createChatChannel();
 
@@ -66,6 +41,7 @@ public class Jartic implements Receiver {
 
         thread.join();
         channel.close();
+        drawChannel.close();
     }
 
     private void createChatChannel() throws Exception {
@@ -75,11 +51,10 @@ public class Jartic implements Receiver {
     }
 
     private void dispatchDrawApp() throws Exception {
-        JChannel drawChannel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+        this.drawChannel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
         this.draw = new Board(drawChannel, isLeader());
         this.draw.setClusterName("DrawCluster");
         this.draw.go();
-        drawChannel.close();
     }
     public void updatePlayersInGame(){
         channel.getView().getMembers().forEach(address -> {
@@ -109,8 +84,7 @@ public class Jartic implements Receiver {
     private void finishRound() {
         int leaderPoints = calculateAndUpdatePlayerPoints();
         leaderPoints = leaderPoints * 2;
-
-        score.updateScore(channel.getAddress().toString(), leaderPoints);
+        score.updateScore(leader.toString(), leaderPoints);
         chat.send(MSG_updateScore+score.toSerializable());
 
         resetRound();
@@ -123,6 +97,10 @@ public class Jartic implements Receiver {
         wordToDraw = "";
         roundHistory = new LinkedList<Answer>();
     }
+
+    /*
+    State methods
+     */
 
     private int calculateAndUpdatePlayerPoints() {
         int leaderPoints = 0;
@@ -142,6 +120,80 @@ public class Jartic implements Receiver {
         return leaderPoints;
     }
 
+    private Address findAddressByString(String str) {
+        List<Address> addresses = channel.getView().getMembers().stream().filter(address -> {
+            return address.toString().equals(str);
+        }).collect(Collectors.toList());
+        return addresses.get(0);
+    }
+
+    private void saveAnswer(String[] answer) {
+        roundHistory.add(new Answer(answer[0], answer[1]));
+        Address address = findAddressByString(answer[0]);
+        if (address != null) {
+            Message msg = new ObjectMessage(address, MSG_gotItRight);
+            try {
+                channel.send(msg);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean isLeader() {
+        if (leader == null) {
+            leader = channel.getView().getCoord();
+            score.updateLeader(leader);
+        }
+        Address currentAddress = channel.getAddress();
+        return leader.equals(currentAddress);
+    }
+
+
+
+    public void onUpdateScoreByText(String scoreText) {
+        Thread thread = new Thread() {
+            public void run() {
+                try {
+                    score.updateScoreByString(scoreText);
+                    return;
+                } catch (Exception e) {
+                    System.out.println("Error: did not update score");
+                    e.printStackTrace();
+                }
+            }
+        };
+        thread.start();
+    }
+
+    public void onNewLeader(String newLeader) {
+        this.leader = findAddressByString(newLeader);
+        if (isLeader()) {
+            draw.setCanDraw(true);
+            System.out.println("You are the next to draw ! type /start to draw");
+        } else {
+            draw.setCanDraw(false);
+        }
+    }
+
+    public void onAnswerSubmitted(String line) {
+        String[] answer = line.split(":");
+        System.out.println("Submitted Answer:" + answer[1] + " - Addr: " + answer[0]);
+        // TODO add ts to time of when the answer is received, check the ts to roundStarted to eliminate late answers.
+        if (wordToDraw.equals(answer[1])) {
+            saveAnswer(answer);
+            return;
+        }
+    }
+
+    public boolean canStartRound() {
+        return wordToDraw.isEmpty() && isLeader();
+    }
+
+    /*
+    util methods - could be extracted to another file/class
+    to keep history of the already sorted words.
+     */
     private String sortNextWord() {
         // TODO implement a decent word sorter
 /*
@@ -162,32 +214,5 @@ public class Jartic implements Receiver {
 
     public static void main(String[] args) throws Exception {
         new Jartic().start();
-    }
-
-    public void onUpdateScoreByText(String scoreText) {
-        score.updateScoreByString(scoreText);
-    }
-
-    public void onNewLeader(String newLeader) {
-        this.leader = findAddressByString(newLeader);
-        if (isLeader()) {
-            draw.setCanDraw(true);
-            System.out.println("You are the next to draw ! type /start to draw");
-        } else {
-            draw.setCanDraw(false);
-        }
-    }
-
-    public void onAnswerSubmitted(String line) {
-        String[] answer = line.split(":");
-        System.out.println("Submitted Answer:" + answer[1] + " - Addr: " + answer[0]);
-        if (wordToDraw.equals(answer[1])) {
-            saveAnswer(answer);
-            return;
-        }
-    }
-
-    public boolean canStartRound() {
-        return wordToDraw.isEmpty() && isLeader();
     }
 }
