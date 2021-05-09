@@ -1,4 +1,4 @@
-package rpg_chat;
+package gartic_in_java;
 import org.jgroups.util.Streamable;
 
 import java.io.DataInput;
@@ -10,7 +10,7 @@ import java.io.IOException;
  * Used by the {@link Draw} and other demos.
  *
  */
-public class MyDrawCommand implements Streamable {
+public class BoardCommand implements Streamable {
     static final byte DRAW=1;
     static final byte CLEAR=2;
     byte mode;
@@ -18,14 +18,14 @@ public class MyDrawCommand implements Streamable {
     int y;
     int rgb;
 
-    public MyDrawCommand() { // needed for streamable
+    public BoardCommand() { // needed for streamable
     }
 
-    MyDrawCommand(byte mode) {
+    BoardCommand(byte mode) {
         this.mode=mode;
     }
 
-    MyDrawCommand(byte mode, int x, int y, int rgb) {
+    BoardCommand(byte mode, int x, int y, int rgb) {
         this.mode=mode;
         this.x=x;
         this.y=y;

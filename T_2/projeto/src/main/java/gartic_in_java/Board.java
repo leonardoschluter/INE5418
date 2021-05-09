@@ -1,4 +1,4 @@
-package rpg_chat;
+package gartic_in_java;
 
 import org.jgroups.*;
 import org.jgroups.jmx.JmxConfigurator;
@@ -20,7 +20,7 @@ import java.util.*;
  * mouse moves are broadcast to all group members, which then apply them to their canvas<p>
  * @author Bela Ban, Oct 17 2001
  */
-public class MyDraw implements Receiver, ActionListener, ChannelListener {
+public class Board implements Receiver, ActionListener, ChannelListener {
     protected String               cluster_name="draw";
     private JChannel               channel=null;
     private int                    member_size=1;
@@ -45,8 +45,8 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
         this.canDraw = canDraw;
     }
 
-    public MyDraw(String props, boolean no_channel, boolean jmx, boolean use_state, long state_timeout,
-                  boolean use_unicasts, String name, boolean send_own_state_on_merge, AddressGenerator gen) throws Exception {
+    public Board(String props, boolean no_channel, boolean jmx, boolean use_state, long state_timeout,
+                 boolean use_unicasts, String name, boolean send_own_state_on_merge, AddressGenerator gen) throws Exception {
         this.no_channel=no_channel;
         this.jmx=jmx;
         this.use_state=use_state;
@@ -60,7 +60,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
         this.send_own_state_on_merge=send_own_state_on_merge;
     }
 
-    public MyDraw(JChannel channel, boolean canDraw) throws Exception {
+    public Board(JChannel channel, boolean canDraw) throws Exception {
         this.channel=channel;
         this.canDraw = canDraw;
         channel.setReceiver(this);
@@ -68,7 +68,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
     }
 
 
-    public MyDraw(JChannel channel, boolean use_state, long state_timeout) throws Exception {
+    public Board(JChannel channel, boolean use_state, long state_timeout) throws Exception {
         this.channel=channel;
         channel.setReceiver(this);
         channel.addChannelListener(this);
@@ -88,7 +88,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
 
 
     public static void main(String[] args) {
-        MyDraw draw=null;
+        Board draw=null;
         String           props=null;
         boolean          no_channel=false;
         boolean          jmx=true;
@@ -151,7 +151,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
         }
 
         try {
-            draw=new MyDraw(props, no_channel, jmx, use_state, state_timeout, use_unicasts, name,
+            draw=new Board(props, no_channel, jmx, use_state, state_timeout, use_unicasts, name,
                     send_own_state_on_merge, generator);
             if(group_name != null)
                 draw.setClusterName(group_name);
@@ -254,13 +254,13 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
         }
 
         try {
-            MyDrawCommand comm=Util.streamableFromByteBuffer(MyDrawCommand::new, buf, msg.getOffset(), msg.getLength());
+            BoardCommand comm=Util.streamableFromByteBuffer(BoardCommand::new, buf, msg.getOffset(), msg.getLength());
             switch(comm.mode) {
-                case MyDrawCommand.DRAW:
+                case BoardCommand.DRAW:
                     if(panel != null)
                         panel.drawPoint(comm);
                     break;
-                case MyDrawCommand.CLEAR:
+                case BoardCommand.CLEAR:
                     clearPanel();
                     break;
                 default:
@@ -332,7 +332,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
     }
 
     public void sendClearPanelMsg() {
-        MyDrawCommand comm=new MyDrawCommand(MyDrawCommand.CLEAR);
+        BoardCommand comm=new BoardCommand(BoardCommand.CLEAR);
         try {
             byte[] buf=Util.streamableToByteBuffer(comm);
             if(use_unicasts)
@@ -387,7 +387,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
             return;
         for(Point point: copy.keySet()) {
             // we don't need the color: it is our draw_color anyway
-            MyDrawCommand comm=new MyDrawCommand(MyDrawCommand.DRAW, point.x, point.y, draw_color.getRGB());
+            BoardCommand comm=new BoardCommand(BoardCommand.DRAW, point.x, point.y, draw_color.getRGB());
             try {
                 byte[] buf=Util.streamableToByteBuffer(comm);
                 if(use_unicasts)
@@ -522,7 +522,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
             }
 
             int                 x=e.getX(), y=e.getY();
-            MyDrawCommand         comm=new MyDrawCommand(MyDrawCommand.DRAW, x, y, draw_color.getRGB());
+            BoardCommand comm=new BoardCommand(BoardCommand.DRAW, x, y, draw_color.getRGB());
 
             if(no_channel) {
                 drawPoint(comm);
@@ -550,7 +550,7 @@ public class MyDraw implements Receiver, ActionListener, ChannelListener {
          * repaint() after adding a pixel to the queue is that repaint() can most often draw multiple points
          * at the same time.
          */
-        public void drawPoint(MyDrawCommand c) {
+        public void drawPoint(BoardCommand c) {
             if(c == null || gr == null) return;
             Color col=new Color(c.rgb);
             gr.setColor(col);
