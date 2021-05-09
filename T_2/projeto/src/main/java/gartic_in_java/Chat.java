@@ -11,7 +11,7 @@ import java.util.List;
 public class Chat  implements Receiver {
     JChannel channel;
     final List<String> state = new LinkedList<String>();
-
+    private Jartic controller;
 
     // MESSAGES
     static final String MSG_warningStartRound = " ||| WARNING ||| The round will start in few seconds ... ";
@@ -22,19 +22,22 @@ public class Chat  implements Receiver {
     static final String MSG_newLeader = "NEW_LEADER:";
     static final String MSG_playerAdded = "PLAYER_ADDED:";
     static final String MSG_updateScore = "UPDATE_SCORE:";
-    private Jartic controller;
 
-    // TODO addPlayer through this
+    public Chat(Jartic jartic) {
+        this.controller = jartic;
+        this.channel = jartic.channel;
+    }
+
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
         controller.updatePlayersInGame();
     }
 
-    //TODO reimplement this using the same logic of boardCommand
     public void receive(Message msg) {
         String line = msg.getObject();
-        if(line.contains(MSG_updateScore)){
+        if(line.contains(MSG_updateScore) && !controller.isLeader()){
             String[] data = line.split(":", 2);
+            System.out.println("The new score is -> " + data[1]);
             controller.onUpdateScoreByText(data[1]);
             return;
         }
@@ -54,6 +57,9 @@ public class Chat  implements Receiver {
             System.out.println(line);
             return;
         }
+
+        System.out.println(line);
+        System.out.println("ISleader -> "+controller.isLeader());
         if(controller.isLeader()){
             controller.onAnswerSubmitted(line);
         }
@@ -79,6 +85,9 @@ public class Chat  implements Receiver {
     public void send(String msgText){
         try {
             Message msg = new ObjectMessage(null, msgText);
+            if(channel == null){
+                channel = controller.channel;
+            }
             channel.send(msg);
         }catch(Exception e){
             e.printStackTrace();
@@ -89,7 +98,6 @@ public class Chat  implements Receiver {
 
     public void eventLoop() {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-
         while (true) {
             try {
                 System.out.print("> ");
@@ -100,6 +108,8 @@ public class Chat  implements Receiver {
                 }
                 if (line.equals("/start") && controller.canStartRound()) {
                     controller.startRound();
+                }else if (line.equals("/score")) {
+                    System.out.println(controller.score.toString());
                 } else {
                     line = channel.getAddressAsString() + ":" + line;
                     send(line);

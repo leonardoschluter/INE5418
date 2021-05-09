@@ -20,14 +20,18 @@ public class Score implements Serializable {
             player.setPoints(0);
         }));
     }
+
     public void addPlayer(Address address){
-        players.put(address.toString(), new Player(address));
+        players.putIfAbsent(address.toString(), new Player(address));
         System.out.println("Player added ->"+players.get(address.toString()).toString());
     }
+
     public void updateScore(String address, int points){
         System.out.println("Player:"+players.get(address)+" - will add"+points);
-        players.get(address).addPoints(points);
-        System.out.println("Updating score: ");
+        Player player = players.get(address);
+        player.addPoints(points);
+        players.put(address, player);
+        System.out.println("Updating score to ->"+ player.toString());
     }
 
     @Override
@@ -79,11 +83,18 @@ public class Score implements Serializable {
     // I've decided to do this as Address is not serializable and it is used in Player class.
     public void updateScoreByString(String serializableStr){
         String[] playersStr = serializableStr.split(":");
-        for(int i = 0 ; i < playersStr.length - 1; i++){// -1 because the last index is empty, as ":" is the end of the string
-            String[] params = playersStr[i].split("|");
-            this.players.get(params[0]).setPoints(Integer.parseInt(params[1]));
-            if(Boolean.valueOf(params[2])){
-                this.players.get(params[0]).setIsLeader();
+        for(int i = 0 ; i < playersStr.length; i++){// -1 because the last index is empty, as ":" is the end of the string
+            System.out.println("Score update -> player updating -> "+ playersStr[i]);
+            String[] params = playersStr[i].split(";");
+            Player player = this.players.get(params[0]);
+            if(player != null) {
+                System.out.println("Score update -> found player -> " + player.toString());
+                player.addPoints(Integer.parseInt(params[1]));
+                if (Boolean.valueOf(params[2])) {
+                    player.setIsLeader();
+                }
+                players.put(params[0], player);
+                System.out.println("Score update -> updated player -> " + players.get(params[0]).toString());
             }
         }
     }
