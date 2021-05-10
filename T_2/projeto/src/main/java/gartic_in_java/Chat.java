@@ -22,6 +22,7 @@ public class Chat  implements Receiver {
     static final String MSG_newLeader = "NEW_LEADER:";
     static final String MSG_playerAdded = "PLAYER_ADDED:";
     static final String MSG_updateScore = "UPDATE_SCORE:";
+    static final String MSG_resetScore = "RESET_SCORE";
 
     public Chat(Jartic jartic) {
         this.controller = jartic;
@@ -35,6 +36,10 @@ public class Chat  implements Receiver {
 
     public void receive(Message msg) {
         String line = msg.getObject();
+        if(line.contains(MSG_resetScore)){
+            controller.onReset();
+            return;
+        }
         if(line.contains(MSG_updateScore) && !controller.isLeader()){
             String[] data = line.split(":", 2);
             System.out.println("The new score is -> " + data[1]);
@@ -59,7 +64,6 @@ public class Chat  implements Receiver {
         }
 
         System.out.println(line);
-        System.out.println("ISleader -> "+controller.isLeader());
         if(controller.isLeader()){
             controller.onAnswerSubmitted(line);
         }
@@ -94,23 +98,51 @@ public class Chat  implements Receiver {
             System.out.println("Failed in sending msg->"+msgText);
         }
     }
+    public void printHelp(){
+        System.out.println(" /score to show actual score");
+        System.out.println(" /start to begin a round, only possible if leader");
 
+        //TODO could require every player to enter /reset
+        System.out.println(" /reset to set the points of each player to 0");
+
+        System.out.println(" /quit to exit the game");
+    }
 
     public void eventLoop() {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        System.out.flush();
+        System.out.println(" Welcome to Jartic, a Java Version of Gartic !");
+        System.out.println(" At every moment you can run /help to see the commands");
+        printHelp();
+        System.out.println(" After you see this message -> \n \"" + MSG_roundStarted+"some fake time");
+        System.out.println(" Just type in your answer and press ENTER ");
+        System.out.println(" If you get it right, you will receive this message-> \n"+MSG_gotItRight);
+        System.out.println(" Otherwise keep trying !");
+        System.out.println(" I Know there is a lot of features and UX to add yet, but it is what I could so far by myself :)");
+        System.out.println(" I hope you enjoy it !!!");
+
         while (true) {
             try {
-                System.out.print("> ");
-                System.out.flush();
                 String line = in.readLine().toLowerCase();
-                if (line.startsWith("quit") || line.startsWith("exit")) {
+                // TODO define better strategy with enums to this.
+                if (line.startsWith("/help")) {
+                    printHelp();
+                }else if (line.startsWith("/quit")) {
+                    this.controller.onQuit();
                     break;
-                }
-                if (line.equals("/start") && controller.canStartRound()) {
+                }else if (line.equals("/score")) {
+                    System.out.println(controller.score.toString());
+                }else if (line.equals("/start") && controller.canStartRound()) {
+                    System.out.flush();
                     controller.startRound();
                 }else if (line.equals("/score")) {
                     System.out.println(controller.score.toString());
+                }else if (line.equals("/reset")) {
+                    send(MSG_resetScore);
                 } else {
+                    if(channel == null){
+                        channel = controller.channel;
+                    }
                     line = channel.getAddressAsString() + ":" + line;
                     send(line);
                 }

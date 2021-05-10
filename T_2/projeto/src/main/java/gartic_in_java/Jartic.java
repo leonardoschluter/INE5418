@@ -2,8 +2,14 @@ package gartic_in_java;
 
 import org.jgroups.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static gartic_in_java.Chat.*;
 
@@ -16,6 +22,8 @@ public class Jartic implements Receiver {
     private Board draw;
     private Chat chat = new Chat(this);
     private JChannel drawChannel;
+    private WordDictionary dictionary;
+    private Random R = new Random();
 
     /*
         Flow methods
@@ -45,13 +53,16 @@ public class Jartic implements Receiver {
     }
 
     private void createChatChannel() throws Exception {
-        channel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+
+        File path = new File("udp.xml");
+        channel = new JChannel(path.getAbsolutePath());
         channel.setReceiver(chat);
         channel.connect("ChatCluster");
     }
 
     private void dispatchDrawApp() throws Exception {
-        this.drawChannel = new JChannel("/home/leonardo/Documentos/devTools/jgroups/udp.xml");
+        File path = new File("udp.xml");
+        this.drawChannel = new JChannel(path.getAbsolutePath());
         this.draw = new Board(drawChannel, isLeader());
         this.draw.setClusterName("DrawCluster");
         this.draw.go();
@@ -82,14 +93,20 @@ public class Jartic implements Receiver {
     }
 
     private void finishRound() {
+        // Calculate points
         int leaderPoints = calculateAndUpdatePlayerPoints();
         leaderPoints = leaderPoints * 2;
-        score.updateScore(leader.toString(), leaderPoints);
-        chat.send(MSG_updateScore+score.toSerializable());
 
-        resetRound();
+        score.updateScore(leader.toString(), leaderPoints);
+
         Address address = score.electNewLeader();
+
+        // Share with others the score and new Leader
+        chat.send(MSG_updateScore+score.toSerializable());
         chat.send(MSG_newLeader + address.toString());
+
+        // Clear draw, wordToDraw and the answers submited in this round
+        resetRound();
     }
 
     private void resetRound(){
@@ -142,7 +159,9 @@ public class Jartic implements Receiver {
 
     public boolean isLeader() {
         if (leader == null) {
+            // Did set view coordinator as leader
             leader = channel.getView().getCoord();
+            System.out.println("No leader, setting view coordinator as leader ->"+leader);
             score.updateLeader(leader);
         }
         Address currentAddress = channel.getAddress();
@@ -166,11 +185,27 @@ public class Jartic implements Receiver {
         thread.start();
     }
 
+    public void onQuit() {
+        draw.stop();
+        // the channels are close on the end of start, after eventLoop is broken;
+    }
+
+    public void onReset() {
+        score.resetScore();
+        System.out.println(score.toString());
+        resetRound();
+        if(isLeader()){
+            Address address = score.electNewLeader();
+            chat.send(MSG_newLeader + address.toString());
+        }
+    }
+
     public void onNewLeader(String newLeader) {
         this.leader = findAddressByString(newLeader);
+        score.updateLeader(leader);
         if (isLeader()) {
             draw.setCanDraw(true);
-            System.out.println("You are the next to draw ! type /start to draw");
+            System.out.println("You are the next to draw ! type /start to begin the round");
         } else {
             draw.setCanDraw(false);
         }
@@ -190,26 +225,34 @@ public class Jartic implements Receiver {
         return wordToDraw.isEmpty() && isLeader();
     }
 
+    public WordDictionary loadDictionary(){
+        WordDictionary dict = new WordDictionary();
+        File path = new File("1000words.txt");
+        try (Stream<String> stream = Files.lines(Paths.get(path.getAbsolutePath()))) {
+            WordDictionary finalDict = dict;
+            stream.forEach(word -> {
+                finalDict.words.add(new Word(word));
+            });
+            dict = finalDict;
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Problem loading the dictionary, setting Hardcoded dict");
+            dict = new WordDictionary();
+            dict.words.add(new Word("hardcoded"));
+        }
+        return dict;
+    }
+
     /*
     util methods - could be extracted to another file/class
     to keep history of the already sorted words.
      */
     private String sortNextWord() {
-        // TODO implement a decent word sorter
-/*
-        ObjectMapper mapper = new ObjectMapper();
-
-        //JSON file to Java object
-        Staff obj = mapper.readValue(new File("c:\\test\\staff.json"), Word.class);
-
-        //JSON URL to Java object
-        Staff obj = mapper.readValue(new URL("http://some-domains/api/staff.json"), Staff.class);
-
-        //JSON string to Java Object
-        Staff obj = mapper.readValue("{'name' : 'mkyong'}", Staff.class);
-
- */
-        return "hardcoded";
+        if(dictionary == null){
+            dictionary = loadDictionary();
+        }
+        int sortedIndex = R.nextInt(dictionary.words.size());
+        return dictionary.words.get(sortedIndex).word;
     }
 
     public static void main(String[] args) throws Exception {
