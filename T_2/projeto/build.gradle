@@ -1,35 +1,38 @@
 plugins {
+    id 'com.github.johnrengelman.shadow' version '5.0.0'
     id 'java'
 }
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 group 'org.example'
-version '1.0-SNAPSHOT'
+version '1.0'
 
 repositories {
     mavenCentral()
 }
 
+mainClassName="gartic_in_java.Jartic"
+jar {
+    manifest {
+        attributes "Main-Class": "gartic_in_java.Jartic"
+    }
+
+    archiveBaseName = 'Jartic'
+    archiveVersion =  '1.0'
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
 dependencies {
     implementation 'org.jgroups:jgroups:5.0.0.Final'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
-dependencies {
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.8.8'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.8.8'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.8'
-}
 
 test {
     useJUnitPlatform()
-}
-
-jar {
-    manifest {
-        attributes "Main-Class": "com.gradle.rpg_chat.SimpleChat"
-    }
-
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
 }

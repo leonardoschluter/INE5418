@@ -18,6 +18,7 @@ public class Score implements Serializable {
         }
         players.forEach(((s, player) -> {
             player.setPoints(0);
+            player.resetLeader();
         }));
     }
 
@@ -27,11 +28,9 @@ public class Score implements Serializable {
     }
 
     public void updateScore(String address, int points){
-        System.out.println("Player:"+players.get(address)+" - will add"+points);
         Player player = players.get(address);
         player.addPoints(points);
         players.put(address, player);
-        System.out.println("Updating score to ->"+ player.toString());
     }
 
     @Override
@@ -42,24 +41,32 @@ public class Score implements Serializable {
         }));
         return result[0];
     }
-
-    public Address electNewLeader() {
-        Address newLeader = null;
+    private void resetLeadership(){
+        // Verify if every player have been leader
         AtomicBoolean allLeader = new AtomicBoolean(true);
         players.forEach((s, player) -> {
             allLeader.set(allLeader.get() && player.hasBeenLeader());
         });
         if(allLeader.get()){
+            // if every player has been leader, reset the property so the sort of new leader can work.
             players.forEach(((s, player) -> {
                 player.resetLeader();
             }));
         }
+    }
+
+    public Address electNewLeader() {
+        Address newLeader = null;
+        // Reset leadership of all players when everyone has already played
+        resetLeadership();
+
         while (newLeader == null){
             Player proposedLeader = sortLeader();
             if(!proposedLeader.hasBeenLeader()){
                 newLeader = proposedLeader.address;
             }
         }
+
         return newLeader;
     }
 
@@ -84,17 +91,14 @@ public class Score implements Serializable {
     public void updateScoreByString(String serializableStr){
         String[] playersStr = serializableStr.split(":");
         for(int i = 0 ; i < playersStr.length; i++){// -1 because the last index is empty, as ":" is the end of the string
-            System.out.println("Score update -> player updating -> "+ playersStr[i]);
             String[] params = playersStr[i].split(";");
             Player player = this.players.get(params[0]);
             if(player != null) {
-                System.out.println("Score update -> found player -> " + player.toString());
-                player.addPoints(Integer.parseInt(params[1]));
+                player.setPoints(Integer.parseInt(params[1]));
                 if (Boolean.valueOf(params[2])) {
                     player.setIsLeader();
                 }
                 players.put(params[0], player);
-                System.out.println("Score update -> updated player -> " + players.get(params[0]).toString());
             }
         }
     }
